@@ -3,9 +3,12 @@
   height: 100vh;
   width: 100vw;
   display: flex;
+  background-color: #222222;
 }
 
 .Inner {
   flex: 1;
   margin: 2em;
+  display: flex;
+  flex-direction: column;
 }

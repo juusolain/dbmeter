@@ -1,27 +1,72 @@
 import logo from "./logo.svg";
 import "./App.css";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 import volumemeter from "volume-meter";
 
 function App() {
   const [volume, setVolume] = useState(0);
+  const [maxVolume, setMaxVolume] = useState(0);
+
+  const timerRef = useRef();
+  const intervalRef = useRef();
+  const volumeRef = useRef(0);
 
   useEffect(() => {
     getMic(setVolume);
   }, []);
 
+  useEffect(() => {
+    volumeRef.current = volume;
+    if (volume > maxVolume) {
+      setMaxVolume(volume);
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+      timerRef.current = setTimeout(() => {
+        intervalRef.current = setInterval(() => {
+          setMaxVolume((curMv) => {
+            let distBot = curMv - volumeRef.current;
+            let distTop = maxVolume - curMv;
+            if (distTop <= 1) distTop = 1;
+            if (distBot <= 1) distBot = 1;
+            console.log(distTop, distBot);
+            if (distTop < distBot) {
+              return curMv - distTop / 50;
+            } else {
+              return curMv - distBot / 50;
+            }
+          }, 5);
+        });
+      }, 2500);
+    }
+  }, [volume, maxVolume]);
+
   return (
     <div className="App">
       <div className="Inner">
-        <p>{volume}</p>
         <div
           style={{
-            height: volume,
-            bottom: 0,
+            height: `${volume}%`,
+            marginTop: "auto",
             width: "100%",
-            position: "absolute",
-            backgroundColor: "red",
+            backgroundColor: `rgb(${Math.floor(
+              (volume / 100) * 255
+            )}, ${Math.floor(255 - (volume / 100) * 255)}, 0)`,
+          }}
+        ></div>
+        <div
+          style={{
+            height: "2px",
+            bottom: `${maxVolume}%`,
+            width: "100%",
+            position: "relative",
+            backgroundColor: `rgb(${Math.floor(
+              (maxVolume / 100) * 255
+            )}, ${Math.floor(255 - (maxVolume / 100) * 255)}, 0)`,
           }}
         ></div>
       </div>
