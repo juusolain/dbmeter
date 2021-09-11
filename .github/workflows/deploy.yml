@@ -30,7 +30,7 @@ jobs:
 
       - name: Commit changes and add CNAME
         run: |
-          cd dist
+          cd build
           git config --global user.email "dbmeter.deployment@jusola.xyz"
           git config --global user.name "DBmeter deployment"
           git init
