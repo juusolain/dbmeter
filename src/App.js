@@ -8,16 +8,26 @@ function App() {
   const [volume, setVolume] = useState(0);
   const [maxVolume, setMaxVolume] = useState(0);
 
+  const [rVolume, setRVolume] = useState(0);
+
   const timerRef = useRef();
   const intervalRef = useRef();
   const volumeRef = useRef(0);
 
+  const queryParams = new URLSearchParams(window.location.search);
+  const volumeMultiplier = queryParams.get("v") || 1;
+
   useEffect(() => {
-    getMic(setVolume);
-  }, []);
+    getMic((vol) => {
+      setVolume(volumeMultiplier * vol);
+    });
+  }, [volumeMultiplier]);
 
   useEffect(() => {
     volumeRef.current = volume;
+    if (volume > rVolume) {
+      setRVolume(volume);
+    }
     if (volume > maxVolume) {
       setMaxVolume(volume);
       if (timerRef.current) {
@@ -29,24 +39,41 @@ function App() {
       timerRef.current = setTimeout(() => {
         intervalRef.current = setInterval(() => {
           setMaxVolume((curMv) => {
-            let distBot = curMv - volumeRef.current;
-            let distTop = maxVolume - curMv;
-            if (distTop <= 1) distTop = 1;
-            if (distBot <= 1) distBot = 1;
-            console.log(distTop, distBot);
-            if (distTop < distBot) {
-              return curMv - distTop / 50;
-            } else {
-              return curMv - distBot / 50;
-            }
+            const fullDist = maxVolume - volumeRef.current;
+            const distNow = curMv - volumeRef.current;
+            const delta = -distNow ^ (2 + fullDist * distNow);
+            return curMv - delta;
           }, 5);
         });
       }, 2500);
     }
-  }, [volume, maxVolume]);
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [volume, maxVolume, rVolume]);
 
   return (
     <div className="App">
+      <p
+        className="CenterText"
+        style={{
+          color: `rgb(${Math.floor((rVolume / 100) * 255)}, ${Math.floor(
+            255 - (rVolume / 100) * 255
+          )}, 0)`,
+          backgroundColor: `rgba(${Math.floor(
+            (rVolume / 100) * 50
+          )}, ${Math.floor(50 - (rVolume / 100) * 50)}, 0, 0.5)`,
+          borderRadius: "8px",
+          minWidth: "2em",
+        }}
+      >
+        {Math.round(rVolume)}
+      </p>
       <div className="Inner">
         <div
           style={{
@@ -81,7 +108,6 @@ async function getMic(onVolume) {
     let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     var src = audioCtx.createMediaStreamSource(stream);
     src.connect(meter);
-    src.connect(audioCtx.destination);
     stream.onended = meter.stop.bind(meter);
     console.log("mic inited");
   } catch (err) {
