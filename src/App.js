@@ -13,6 +13,7 @@ function App() {
   const timerRef = useRef();
   const intervalRef = useRef();
   const volumeRef = useRef(0);
+  const mvRef = useRef(0);
 
   const queryParams = new URLSearchParams(window.location.search);
   const volumeMultiplier = queryParams.get("v") || 1;
@@ -25,6 +26,7 @@ function App() {
 
   useEffect(() => {
     volumeRef.current = volume;
+    mvRef.current = maxVolume;
     if (volume > rVolume) {
       setRVolume(volume);
     }
@@ -36,25 +38,26 @@ function App() {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
+      mvRef.current = volume;
+      const triggerMv = volume;
       timerRef.current = setTimeout(() => {
         intervalRef.current = setInterval(() => {
-          setMaxVolume((curMv) => {
-            const fullDist = maxVolume - volumeRef.current;
-            const distNow = curMv - volumeRef.current;
-            const delta = -distNow ^ (2 + fullDist * distNow);
-            return curMv - delta;
-          }, 5);
-        });
+          const fullDist = triggerMv - volumeRef.current;
+          var distTop = triggerMv - mvRef.current;
+          if (distTop < 0.1) distTop = 0.1;
+          console.log(triggerMv, mvRef.current, fullDist, distTop);
+          const tm = 4;
+          const delta =
+            -(1 / (tm * fullDist)) * distTop ** 2 + (1 / tm) * distTop;
+          console.log(delta);
+          if (fullDist - distTop < 0.2) {
+            setMaxVolume(volumeRef.current);
+          } else {
+            setMaxVolume(mvRef.current - delta);
+          }
+        }, 5);
       }, 2500);
     }
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-      }
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
   }, [volume, maxVolume, rVolume]);
 
   return (
